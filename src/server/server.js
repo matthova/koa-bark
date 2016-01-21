@@ -1,4 +1,5 @@
 require(`source-map-support`).install();
+require('dotenv').config();
 require(`babel-polyfill`);
 const app = require(`./app`);
 const debug = require(`debug`);

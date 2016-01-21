@@ -6,9 +6,9 @@ const sass = require(`gulp-sass`);
 const autoprefixer = require(`gulp-autoprefixer`);
 const mocha = require(`gulp-mocha`);
 const rename = require(`gulp-rename`);
-const path = require(`path`);
-const spawn = require('child_process').spawn;
 const foreman = require('gulp-foreman');
+
+// TODO make sure the foreman server restarts on change
 
 const src = {
   serverJs: `src/server/**/*.js`,
@@ -83,8 +83,8 @@ gulp.task(`build-server-middleware`, () => {
       plugins: [`transform-async-to-generator`],
     })
   )
-  .pipe(rename((path) => {
-    path.dirname = path.dirname.replace(`/server`, ``);
+  .pipe(rename((serverMiddlewarePath) => {
+    serverMiddlewarePath.dirname = serverMiddlewarePath.dirname.replace(`/server`, ``);
   }))
 	.pipe(sourcemaps.write(`.`))
 	.pipe(gulp.dest(dest.middleware));
@@ -121,8 +121,8 @@ gulp.task(`build-client-js-middleware`, () => {
   )
   // TODO sequentially require and minify modules
   // .pipe(concat(`all.js`))
-  .pipe(rename((path) => {
-    path.dirname = path.dirname.replace(`/client`, ``);
+  .pipe(rename((clientJsPath) => {
+    clientJsPath.dirname = clientJsPath.dirname.replace(`/client`, ``);
   }))
 	.pipe(sourcemaps.write(`.`))
 	.pipe(gulp.dest(dest.clientJs + '/js'));
@@ -153,8 +153,8 @@ gulp.task(`build-views`, () => {
 
 gulp.task(`build-views-middleware`, () => {
   return gulp.src(src.viewsMiddleware)
-  .pipe(rename((path) => {
-    path.dirname = path.dirname.replace(`/client`, ``);
+  .pipe(rename((middlewarePath) => {
+    middlewarePath.dirname = middlewarePath.dirname.replace(`/client`, ``);
   }))
   .pipe(gulp.dest(dest.views));
 });
@@ -166,8 +166,8 @@ gulp.task(`build-docs`, () => {
 
 gulp.task(`build-doc-yaml`, () => {
   return gulp.src(src.swaggerYaml)
-  .pipe(rename((path) => {
-    path.dirname = ``;
+  .pipe(rename((yamlPath) => {
+    yamlPath.dirname = ``;
   }))
   .pipe(gulp.dest(dest.yaml));
 });
@@ -180,7 +180,10 @@ gulp.task(
     `watch`,
   ],
   () => {
-    foreman();
+    nodemon({ script: 'dist/server/server.js' })
+    .on('restart', () => {
+      console.log('restarted!');
+    });
   }
 );
 
