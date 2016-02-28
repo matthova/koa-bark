@@ -3,7 +3,7 @@ info:
   version: 1.0.0
   title: To-Do List REST API
   description: A REST API for a to-do list
-host: localhost:5000
+host: localhost:9000
 basePath: /
 schemes:
   - http
@@ -40,7 +40,7 @@ paths:
             $ref: '#/definitions/Error'
     delete:
       parameters:
-        - name: taskId
+        - name: id
           in: body
           description: The ID of the task to be deleted
           required: true
