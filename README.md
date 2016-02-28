@@ -4,6 +4,7 @@ An es7 friendly framework for NodeJS applications.
 
 The framework is built on top of
 - Koa 2
+- Koa Bark
 - Sequelize
 - Socket.io
 
@@ -32,14 +33,20 @@ Run tests
 npm test
 ```
 
+### Setting up postgres on a raspberry pi
+These instructions assume setting both the username and database to "postgres"  
+```
+sudo mkdir /var/local/repository  
+cd /var/local/repository  
+sudo wget -O postgresql-9.4.4-raspbian.tgz https://www.dropbox.com/s/t9x78hbfo2mb8yi/postgresql-9.4.4-raspbian.tgz?dl=1  
+sudo tar -xvzf postgresql-9.4.4-raspbian.tgz  
+echo "deb [ trusted=yes ] file:///var/local/repository ./" | sudo tee /etc/apt/sources.list.d/my_own_repo.list  
+sudo apt-get update  
+sudo apt-get install postgresql-9.4  
+sudo service postgresql start  
+```
 
-## Middleware
-The goal of the middleware is to follow an MVC pattern.  
-- Model: Declare in the model folder any database items or relationships  
-- View: Create any UI or client js in the client folder  
-- Controller: Write all routing logic in the server folder  
-- Test: Write all server tests in the test/test.js file  
-
-For the to-do list example, all documentation follows a Swagger yaml definition  
-Ideally, in the future the swagger definition should drive a set of tests as well  
-The documentation is available at '<endpoint>/docs', in this case, they're at localhost:<port>/docs
+### Then set the psql password
+```
+sudo -iu postgres psql -c "\password postgres"
+```
