@@ -13,8 +13,7 @@ const Sequelize = require('sequelize');
 const Promise = require(`bluebird`);
 
 // Import custom middleware libraries
-const Tasks = require('./middleware/tasks');
-const UI = require('./middleware/ui');
+const ToDoList = require('./middleware/toDoList');
 
 class KoaApp {
   constructor(config) {
@@ -68,13 +67,8 @@ class KoaApp {
     })
     // add custom middleware here
     .then(async () => {
-      const apiVersion = `/v1`;
-      const tasks = new Tasks(this.app, `${apiVersion}/tasks`);
+      const tasks = new ToDoList(this.app, `/`);
       await tasks.initialize();
-
-      const ui = new UI(this.app, ``);
-      await ui.initialize();
-
       this.app.context.logger.info('Koa Bark has been initialized successfully.');
     });
 
