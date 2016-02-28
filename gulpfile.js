@@ -2,42 +2,38 @@ const gulp = require(`gulp`);
 const sourcemaps = require(`gulp-sourcemaps`);
 const babel = require(`gulp-babel`);
 const nodemon = require(`gulp-nodemon`);
-const sass = require(`gulp-sass`);
 const autoprefixer = require(`gulp-autoprefixer`);
 const mocha = require(`gulp-mocha`);
 const rename = require(`gulp-rename`);
-const path = require(`path`);
-const spawn = require('child_process').spawn;
-const foreman = require('gulp-foreman');
+
+// TODO make sure the foreman server restarts on change
 
 const src = {
-  serverJs: `src/server/**/*.js`,
+  serverJs: `src/app/**/*.js`,
   clientJs: `src/client/**/*.js`,
   middlewareServerJs: `src/middleware/**/server/**/*.js`,
   middlewareModelJs: `src/middleware/**/model/**/*.js`,
   middlewareClientJs: `src/middleware/**/client/**/*.js`,
-  clientStyles: `src/client/scss/styles.scss`,
-  views: `src/server/views/**/*.jade`,
+  views: `src/app/views/**/*.jade`,
   viewsMiddleware: `src/middleware/**/client/**/*.jade`,
   swaggerYaml: `src/middleware/**/*.yaml`,
   docs: `src/docs/**/*.*`,
-  images: `src/client/images/**/*.*`,
+  tests: `src/middleware/**/test/test.js`,
+  testAssets: `src/middleware/**/test/**/*`,
 };
 
 const dest = {
   server: `dist/server`,
   middleware: `dist/server/middleware`,
   clientJs: `./dist/client`,
-  clientStyles: `./dist/client/css`,
-  images: `dist/client/images`,
   views: `dist/server/views`,
   docs: `dist/client/docs`,
   yaml: `dist/client/docs/middleware`,
+  src: `src/middleware/**/test/test.js`,
+  tests: `dist/tests`,
 };
 
 gulp.task(`build`, [
-  `build-styles`,
-  `build-images`,
   `build-server`,
   `build-views`,
   `build-client-js`,
@@ -46,12 +42,12 @@ gulp.task(`build`, [
   `build-client-js-middleware`,
   `build-docs`,
   `build-doc-yaml`,
+  `build-tests`,
 ]);
 
 gulp.task(`watch`, () => {
   gulp.watch([src.serverJs, src.middlewareServerJs, src.middlewareModelJs], [`build-server`, `build-server-middleware`]);
   gulp.watch([src.clientJs], [`build-client-js`]);
-  gulp.watch([src.clientStyles], [`build-styles`]);
   gulp.watch(src.views, [`build-views`]);
   gulp.watch(src.viewsMiddleware, [`build-views-middleware`]);
   gulp.watch(src.middlewareClientJs, [`build-client-js-middleware`]);
@@ -63,7 +59,7 @@ gulp.task(`build-server`, () => {
   .pipe(sourcemaps.init())
 	.pipe(
     babel({
-      presets: [`es2015-node4`],
+      presets: [`es2015-node5`],
       plugins: [`transform-async-to-generator`],
     })
   )
@@ -79,12 +75,12 @@ gulp.task(`build-server-middleware`, () => {
   .pipe(sourcemaps.init())
 	.pipe(
     babel({
-      presets: [`es2015-node4`],
+      presets: [`es2015-node5`],
       plugins: [`transform-async-to-generator`],
     })
   )
-  .pipe(rename((path) => {
-    path.dirname = path.dirname.replace(`/server`, ``);
+  .pipe(rename((serverMiddlewarePath) => {
+    serverMiddlewarePath.dirname = serverMiddlewarePath.dirname.replace(`/server`, ``);
   }))
 	.pipe(sourcemaps.write(`.`))
 	.pipe(gulp.dest(dest.middleware));
@@ -121,29 +117,11 @@ gulp.task(`build-client-js-middleware`, () => {
   )
   // TODO sequentially require and minify modules
   // .pipe(concat(`all.js`))
-  .pipe(rename((path) => {
-    path.dirname = path.dirname.replace(`/client`, ``);
+  .pipe(rename((clientJsPath) => {
+    clientJsPath.dirname = clientJsPath.dirname.replace(`/client`, ``);
   }))
 	.pipe(sourcemaps.write(`.`))
 	.pipe(gulp.dest(dest.clientJs + '/js'));
-});
-
-gulp.task(`build-styles`, () => {
-  return gulp.src(src.clientStyles)
-  .pipe(sass({
-    outputStyle: `compressed`,
-    sourceComments: `map`,
-  }))
-  .pipe(autoprefixer(
-    `last 2 version`, `safari 5`, `ie 8`, `ie 9`,
-    `opera 12.1`, `ios 6`, `android 4`
-  ))
-  .pipe(gulp.dest(dest.clientStyles));
-});
-
-gulp.task(`build-images`, () => {
-  return gulp.src(src.images)
-  .pipe(gulp.dest(dest.images));
 });
 
 gulp.task(`build-views`, () => {
@@ -153,10 +131,35 @@ gulp.task(`build-views`, () => {
 
 gulp.task(`build-views-middleware`, () => {
   return gulp.src(src.viewsMiddleware)
-  .pipe(rename((path) => {
-    path.dirname = path.dirname.replace(`/client`, ``);
+  .pipe(rename((middlewarePath) => {
+    middlewarePath.dirname = middlewarePath.dirname.replace(`/client`, ``);
   }))
   .pipe(gulp.dest(dest.views));
+});
+
+gulp.task(`build-test-assets`, () => {
+  return gulp.src(src.testAssets)
+  .pipe(rename((testPath) => {
+    testPath.dirname = testPath.dirname.replace(`/test`, ``);
+  }))
+  .pipe(gulp.dest(dest.tests));
+});
+
+
+gulp.task(`build-tests`, [`build-test-assets`], () => {
+  return gulp.src(src.tests)
+  .pipe(sourcemaps.init())
+	.pipe(
+    babel({
+      presets: [`es2015-node5`],
+      plugins: [`transform-async-to-generator`],
+    })
+  )
+  .pipe(rename((testPath) => {
+    testPath.dirname = testPath.dirname.replace(`/test`, ``);
+  }))
+  .pipe(sourcemaps.write(`.`))
+  .pipe(gulp.dest(dest.tests));
 });
 
 gulp.task(`build-docs`, () => {
@@ -166,8 +169,8 @@ gulp.task(`build-docs`, () => {
 
 gulp.task(`build-doc-yaml`, () => {
   return gulp.src(src.swaggerYaml)
-  .pipe(rename((path) => {
-    path.dirname = ``;
+  .pipe(rename((yamlPath) => {
+    yamlPath.dirname = ``;
   }))
   .pipe(gulp.dest(dest.yaml));
 });
@@ -180,7 +183,28 @@ gulp.task(
     `watch`,
   ],
   () => {
-    foreman();
+    nodemon({ script: 'dist/server/server.js' })
+    .on('restart', () => {
+      console.log('restarted!');
+    });
+  }
+);
+
+// Complete every task before starting nodemon
+gulp.task(
+  `run-conductor`,
+  [
+    `build`,
+    `watch`,
+  ],
+  () => {
+    nodemon({
+      script: 'dist/server/server.js',
+      env: { NODE_ENV: 'conducting' },
+    })
+    .on('restart', () => {
+      console.log('restarted!');
+    });
   }
 );
 
@@ -188,6 +212,12 @@ gulp.task(`default`, [
   `build`,
   `watch`,
   `develop`,
+]);
+
+gulp.task(`conduct`, [
+  `build`,
+  `watch`,
+  `run-conductor`,
 ]);
 
 gulp.task(`run-tests`, [`default`], () => {
